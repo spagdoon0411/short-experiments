@@ -7,6 +7,7 @@ forward, backward, optimizer step) via record_function.
 """
 
 import argparse
+import pickle
 from datetime import datetime
 from pathlib import Path
 
@@ -101,6 +102,9 @@ def main():
 
     print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=15))
     prof.export_chrome_trace(str(traces_dir / f"{trace_id}_trace.json"))
+
+    with open(traces_dir / f"{trace_id}_prof.pickle", "wb") as f:
+        pickle.dump(prof, f)
 
     if device.type == "cuda":
         torch.cuda.memory._dump_snapshot(
