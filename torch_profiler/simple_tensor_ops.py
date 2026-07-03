@@ -46,7 +46,8 @@ def main():
     traces_dir = Path(__file__).parent / "traces"
     traces_dir.mkdir(exist_ok=True)
 
-    buf = torch.randn(4096, 16384, device=device) / 100  # batch, feature
+    orig_buf = torch.randn(4096, 16384, device=device) / 100  # batch, feature
+    target = torch.clone(orig_buf)
 
     prof_schedule = schedule(wait=0, warmup=5, active=1, repeat=1)
 
@@ -64,16 +65,15 @@ def main():
     )
 
     with prof_ctx as prof, record_function("primary_loop"):
-        orig_buf = buf.clone()
         for _ in range(10):
             with record_function("add"):
-                buf += orig_buf
+                target += orig_buf
 
         if prof:
             prof.step()
 
         with record_function("softmax"):
-            orig_buf = F.softmax(buf, dim=-1)  # batch, feature
+            target = F.softmax(target, dim=-1)  # batch, feature
 
         if prof:
             prof.step()
