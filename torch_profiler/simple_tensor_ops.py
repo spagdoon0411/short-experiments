@@ -7,6 +7,7 @@ record_function.
 """
 
 import argparse
+from contextlib import nullcontext
 from datetime import datetime
 from pathlib import Path
 
@@ -27,6 +28,9 @@ def parse_args():
     parser.add_argument(
         "--name", type=str, default=None, help="Optional label for this trace run"
     )
+    parser.add_argument(
+        "--profile", type=bool, default=False, help="Enable/disable PyTorch profiling"
+    )
     return parser.parse_args()
 
 
@@ -43,7 +47,7 @@ def main():
 
     prof_schedule = schedule(wait=0, warmup=5, active=1, repeat=1)
 
-    with (
+    prof_ctx = (
         profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
             schedule=prof_schedule,
@@ -51,25 +55,29 @@ def main():
             with_stack=True,
             with_modules=True,
             profile_memory=True,
-        ) as prof,
-        record_function("primary_loop"),
-    ):
+        )
+        if args.prof_enabled
+        else nullcontext()
+    )
+
+    with prof_ctx as prof, record_function("primary_loop"):
         orig_buf = buf.clone()
         for _ in range(10):
             with record_function("add"):
                 buf += orig_buf
 
+        if prof:
             prof.step()
 
         with record_function("softmax"):
-            buf = F.softmax(buf, dim=-1)  # batch, feature
+            _ = F.softmax(buf, dim=-1)  # batch, feature
 
-        prof.step()
+        if prof:
+            prof.step()
 
-    print(buf)
-
-    print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=15))
-    prof.export_chrome_trace(str(traces_dir / f"{trace_id}_trace.json"))
+    if prof:
+        print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=15))
+        prof.export_chrome_trace(str(traces_dir / f"{trace_id}_trace.json"))
 
     if device.type == "cuda":
         torch.cuda.memory._dump_snapshot(
