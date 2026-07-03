@@ -73,7 +73,7 @@ def main():
             prof.step()
 
         with record_function("softmax"):
-            _ = F.softmax(buf, dim=-1)  # batch, feature
+            orig_buf = F.softmax(buf, dim=-1)  # batch, feature
 
         if prof:
             prof.step()
