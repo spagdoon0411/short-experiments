@@ -12,7 +12,6 @@ from datetime import datetime
 from pathlib import Path
 
 import torch
-import torch.nn.functional as F
 from torch.profiler import ProfilerActivity, profile, record_function, schedule
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -73,7 +72,7 @@ def main():
             prof.step()
 
         with record_function("softmax"):
-            target = F.softmax(target, dim=-1)  # batch, feature
+            torch.softmax(target, dim=-1, out=target)  # batch, feature
 
         if prof:
             prof.step()
