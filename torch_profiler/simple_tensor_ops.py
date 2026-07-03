@@ -41,7 +41,7 @@ def main():
 
     buf = torch.randn(4096, 16384, device=device) / 100  # batch, feature
 
-    prof_schedule = schedule(wait=0, warmup=10, active=1, repeat=1)
+    prof_schedule = schedule(wait=0, warmup=5, active=1, repeat=1)
 
     with (
         profile(
