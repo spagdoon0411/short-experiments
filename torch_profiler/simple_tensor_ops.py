@@ -30,22 +30,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def print_heaviest_stacks(stacks_path: Path, top_n: int = 15):
-    entries = []
-    with open(stacks_path) as f:
-        for line in f:
-            stack, _, value = line.rpartition(" ")
-            if not stack:
-                continue
-            entries.append((int(value), stack.split(";")[-1]))
-
-    entries.sort(key=lambda entry: entry[0], reverse=True)
-
-    print(f"\nHeaviest source locations ({stacks_path.name}):")
-    for value, frame in entries[:top_n]:
-        print(f"{value:>12}  {frame}")
-
-
 def main():
     args = parse_args()
 
@@ -57,7 +41,7 @@ def main():
 
     buf = torch.randn(4096, 16384, device=device) / 100  # batch, feature
 
-    prof_schedule = schedule(wait=0, warmup=5, active=1, repeat=1)
+    prof_schedule = schedule(wait=0, warmup=10, active=1, repeat=1)
 
     with (
         profile(
@@ -76,18 +60,15 @@ def main():
 
             prof.step()
 
-    with record_function("softmax"):
-        buf = F.softmax(buf, dim=-1)  # batch, feature
+        with record_function("softmax"):
+            buf = F.softmax(buf, dim=-1)  # batch, feature
+
+        prof.step()
 
     print(buf)
 
     print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=15))
     prof.export_chrome_trace(str(traces_dir / f"{trace_id}_trace.json"))
-
-    stack_metric = "self_cuda_time_total" if device.type == "cuda" else "self_cpu_time_total"
-    stacks_path = traces_dir / f"{trace_id}_stacks.txt"
-    prof.export_stacks(str(stacks_path), metric=stack_metric)
-    print_heaviest_stacks(stacks_path)
 
     if device.type == "cuda":
         torch.cuda.memory._dump_snapshot(
