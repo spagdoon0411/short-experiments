@@ -29,7 +29,10 @@ def parse_args():
         "--name", type=str, default=None, help="Optional label for this trace run"
     )
     parser.add_argument(
-        "--profile", type=bool, default=False, help="Enable/disable PyTorch profiling"
+        "--prof_enabled",
+        type=bool,
+        default=False,
+        help="Enable/disable PyTorch profiling",
     )
     return parser.parse_args()
 
