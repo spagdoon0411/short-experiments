@@ -56,7 +56,7 @@ def main():
     ):
         for _ in range(10):
             with record_function("add"):
-                buf = buf + buf
+                buf += buf
 
             prof.step()
 
