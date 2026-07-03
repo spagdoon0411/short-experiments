@@ -54,9 +54,10 @@ def main():
         ) as prof,
         record_function("primary_loop"),
     ):
+        orig_buf = buf.clone()
         for _ in range(10):
             with record_function("add"):
-                buf += buf
+                buf += orig_buf
 
             prof.step()
 
